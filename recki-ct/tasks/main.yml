@@ -1,0 +1,114 @@
+- name: Update apt
+  sudo: yes
+  apt: update_cache=yes
+
+- name: Install System Packages
+  sudo: yes
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - bison
+    - flex
+    - texinfo
+    - git
+    - php5-dev
+    - php5-curl
+    - autoconf
+    - autotools-dev
+    - libtool
+
+##libjit-fu
+- name: clone lib JitFu
+  git: repo=git://git.sv.gnu.org/libjit.git
+       dest=/home/vagrant/libjit-fu/
+       accept_hostkey=yes
+       ssh_opts="-o StrictHostKeyChecking=no"
+
+- name: autogen
+  command: chdir=/home/vagrant/libjit-fu/ ./auto_gen.sh
+
+- name: configure
+  command: chdir=/home/vagrant/libjit-fu/ ./configure --prefix=/opt
+
+- name: make
+  command: chdir=/home/vagrant/libjit-fu/ make
+
+- name: install
+  sudo: yes
+  command: chdir=/home/vagrant/libjit-fu/ make install
+
+##clone jitfu
+- name: Install JitFu
+  git: repo=https://github.com/krakjoe/jitfu
+       dest=/home/vagrant/jit-fu/
+       accept_hostkey=yes
+       ssh_opts="-o StrictHostKeyChecking=no"
+
+- name: phpize
+  command: chdir=/home/vagrant/jit-fu/ phpize
+
+- name: configure
+  command: chdir=/home/vagrant/jit-fu/ ./configure --with-jitfu=/opt
+
+- name: make
+  command: chdir=/home/vagrant/jit-fu/ make
+
+- name: install
+  sudo: yes
+  command: chdir=/home/vagrant/jit-fu/ make install
+
+
+##check where to add the config
+- name: check apache modphp existence
+  stat: path=/etc/php5/apache2/conf.d/
+  register: mod_php
+
+- name: check php-fpm existence
+  stat: path=/etc/php5/php-fpm/conf.d/
+  register: php_fpm
+
+- name: check php cli existence
+  stat: path=/etc/php5/cli/conf.d/
+  register: php_cli
+
+- name: check apache existence
+  stat: path=/etc/apache2/
+  register: apache
+
+- name: check nginx existence
+  stat: path=/etc/nginx/
+  register: nginx
+  
+- name: add to php cli config
+  sudo: yes
+  lineinfile: dest=/etc/php5/cli/conf.d/20-jitfu.ini
+              line="extension=jitfu.so"
+              state=present
+              create=yes
+  when: php_cli.stat.exists
+
+- name: add to modphp apache config
+  sudo: yes
+  lineinfile: dest=/etc/php5/apache2/conf.d/20-jitfu.ini
+              line="extension=jitfu.so"
+              state=present
+              create=yes
+  when: mod_php.stat.exists
+  notify: restart apache
+  
+- name: add to php-fpm apache config
+  sudo: yes
+  lineinfile: dest=/etc/php5/php-fpm/conf.d/20-jitfu.ini
+              line="extension=jitfu.so"
+              state=present
+              create=yes
+  when: apache.stat.exists and php_fpm.stat.exists
+  notify: restart apache
+  
+- name: add to php-fpm nginx config
+  sudo: yes
+  lineinfile: dest=/etc/php5/php-fpm/conf.d/20-jitfu.ini
+              line="extension=jitfu.so"
+              state=present
+              create=yes
+  when: nginx.stat.exists and php_fpm.stat.exists
+  notify: restart nginx
