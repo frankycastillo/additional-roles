@@ -1,0 +1,13 @@
+## Defaults for the beanstalkd init script, /etc/init.d/beanstalkd on
+## Debian systems. Append ``-b /var/lib/beanstalkd'' for persistent
+## storage.
+BEANSTALKD_LISTEN_ADDR={{ beanstalkd.ip }}
+BEANSTALKD_LISTEN_PORT={{ beanstalkd.port }}
+{% if beanstalkd.persistent %}
+DAEMON_OPTS="-l $BEANSTALKD_LISTEN_ADDR -p $BEANSTALKD_LISTEN_PORT -b {{ beanstalkd.persistent_file }}"
+{% else %}
+DAEMON_OPTS="-l $BEANSTALKD_LISTEN_ADDR -p $BEANSTALKD_LISTEN_PORT"
+{% endif %}
+
+## Uncomment to enable startup during boot.
+{% if not beanstalkd.start %}{{ '#' }}{% endif %}START=yes
