@@ -1,0 +1,7 @@
+---
+beanstalkd:
+    ip: 127.0.0.1
+    port: 11300
+    start: true
+    persistent: true
+    persistent_file: /var/lib/beanstalkd

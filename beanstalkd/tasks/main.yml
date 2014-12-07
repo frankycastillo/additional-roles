@@ -1,0 +1,8 @@
+---
+- name: Install Beanstalkd
+  sudo: yes
+  apt: pkg=beanstalkd state=latest
+
+- name: configure beanstalkd
+  template: src=beanstalkd dest=/etc/default/beanstalkd
+  notify: restart beanstalkd
